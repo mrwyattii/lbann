@@ -34,11 +34,12 @@
 // Import the DNN __device__ function library
 #if defined LBANN_HAS_CUDNN
 
-#include "cudnn.hpp"
+#include "dnn_lib.hpp"
+//#include "cudnn.hpp"
 namespace lbann {
-namespace dnn_lib {
-  using namespace cudnn;
-}// namespace dnn_lib
+//namespace dnn_lib {
+//  using namespace cudnn;
+//}// namespace dnn_lib
 }// namespace lbann
 #elif defined LBANN_HAS_MIOPEN
 
@@ -52,7 +53,7 @@ namespace dnn_lib {
 
 // Include GPU arch-independent stuff
 #if defined LBANN_HAS_DNN_LIB
-#include "dnn_lib.hpp"
+//#include "dnn_lib.hpp"
 #endif // LBANN_HAS_DNN_LIB
 
 #endif // LBANN_UTILS_DNN_HELPERS_HPP_INCLUDED

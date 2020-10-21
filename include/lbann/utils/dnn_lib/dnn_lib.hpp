@@ -24,8 +24,8 @@
 // permissions and limitations under the license.
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef LBANN_UTILS_CUDNN_HPP
-#define LBANN_UTILS_CUDNN_HPP
+#ifndef LBANN_UTILS_DNN_CUDNN_HPP
+#define LBANN_UTILS_DNN_CUDNN_HPP
 
 #include "lbann/base.hpp"
 #include "lbann/utils/gpu/helpers.hpp"
