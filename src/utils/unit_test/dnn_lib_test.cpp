@@ -33,7 +33,7 @@
 #include <lbann/utils/dnn_lib/helpers.hpp>
 
 #include <lbann/utils/dnn_lib/convolution.hpp>
-//#include <lbann/utils/dnn_lib/dropout.hpp>
+#include <lbann/utils/dnn_lib/dropout.hpp>
 //#include <lbann/utils/dnn_lib/local_response_normalization.hpp>
 //#include <lbann/utils/dnn_lib/pooling.hpp>
 #include <lbann/utils/dnn_lib/softmax.hpp>
@@ -190,6 +190,52 @@ TEMPLATE_TEST_CASE("Computing convolution layers", "[dnn_lib]", float, double)
                                            workSpace,
                                            beta,
                                            dwDesc, dw));
+  }
+}
+
+TEMPLATE_TEST_CASE("Computing dropout layers", "[dnn_lib]", float, double)
+{
+  int N = 8, c = 1, h = 5, w = 5;
+  float dropout = 0.25;
+  int seed = 1337;
+  dnn_lib::DropoutDescriptor dropoutDesc;
+  size_t states_size = dnn_lib::get_dropout_states_size() / sizeof(TestType);
+  El::Matrix<TestType, El::Device::GPU> states(states_size, 1);
+  dropoutDesc.set(dropout, states.Buffer(), states_size * sizeof(TestType), seed);
+
+  SECTION("dropout forward")
+  {
+    dnn_lib::TensorDescriptor xDesc;
+    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
+    dnn_lib::TensorDescriptor yDesc;
+    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
+    size_t workspace_size = dnn_lib::get_dropout_reserve_space_size(xDesc);
+    El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
+
+    REQUIRE_NOTHROW(
+      dnn_lib::dropout_forward(dropoutDesc,
+                               xDesc, x,
+                               yDesc, y,
+                               workSpace));
+  }
+  SECTION("dropout backward")
+  {
+    dnn_lib::TensorDescriptor dxDesc;
+    dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> dx(c * h * w, N);
+    dnn_lib::TensorDescriptor dyDesc;
+    dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> dy(c * h * w, N);
+    size_t workspace_size = dnn_lib::get_dropout_reserve_space_size(dxDesc);
+    El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
+
+    REQUIRE_NOTHROW(
+      dnn_lib::dropout_forward(dropoutDesc,
+                               dyDesc, dy,
+                               dxDesc, dx,
+                               workSpace));
   }
 }
 
