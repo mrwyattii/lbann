@@ -290,6 +290,59 @@ TEMPLATE_TEST_CASE("Computing LRN layers", "[dnn_lib]", float, double)
   }
 }
 
+TEMPLATE_TEST_CASE("Computing pooling layers", "[dnn_lib]", float, double)
+{
+  int N = 8, c = 3, h = 5, w = 5;
+  std::vector<int> windowDims{ 2, 2 };
+  std::vector<int> padding{ 1, 1 };
+  std::vector<int> stride{ 1, 1 };
+  const dnn_lib::ScalingParamType<TestType> alpha = 1.;
+  const dnn_lib::ScalingParamType<TestType> beta = 0.;
+  dnn_lib::PoolingDescriptor poolingDesc;
+  poolingDesc.set(CUDNN_POOLING_MAX, CUDNN_PROPAGATE_NAN,
+                  windowDims, padding, stride);
+
+  SECTION("Pooling forward")
+  {
+    dnn_lib::TensorDescriptor xDesc;
+    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
+    dnn_lib::TensorDescriptor yDesc;
+    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
+
+    REQUIRE_NOTHROW(
+      dnn_lib::pooling_forward(poolingDesc,
+                               alpha, xDesc, x,
+                               beta, yDesc, y));
+  }
+
+  SECTION("Pooling backward")
+  {
+    dnn_lib::TensorDescriptor yDesc;
+    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
+    dnn_lib::TensorDescriptor dyDesc;
+    dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> dy(c * h * w, N);
+    dnn_lib::TensorDescriptor xDesc;
+    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
+    dnn_lib::TensorDescriptor dxDesc;
+    dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+    El::Matrix<TestType, El::Device::GPU> dx(c * h * w, N);
+
+    REQUIRE_NOTHROW(
+      dnn_lib::pooling_backward(poolingDesc,
+                                alpha,
+                                yDesc, y,
+                                dyDesc, dy,
+                                xDesc, x,
+                                beta,
+                                dxDesc, dx));
+  }
+}
+
 TEMPLATE_TEST_CASE("Computing softmax layers", "[dnn_lib]", float, double)
 {
   int N = 8, labels_n = 2;
