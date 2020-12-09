@@ -27,9 +27,7 @@
 // MUST include this
 #include <catch2/catch.hpp>
 
-#include <lbann/base.hpp>
 #include <lbann/utils/dnn_enums.hpp>
-#include <lbann/utils/exception.hpp>
 #include <lbann/utils/dnn_lib/helpers.hpp>
 
 #include <lbann/utils/dnn_lib/convolution.hpp>
@@ -161,25 +159,37 @@ TEMPLATE_TEST_CASE("Computing convolution layers", "[dnn_lib]", float, double)
 
 TEMPLATE_TEST_CASE("Computing dropout layers", "[dnn_lib]", float, double)
 {
+  // Parameters describing dropout and tensor sizes
   int N = 8, c = 1, h = 5, w = 5;
   float dropout = 0.25;
   int seed = 1337;
-  dnn_lib::DropoutDescriptor dropoutDesc;
+
+  // Dropout descriptor
   size_t states_size = dnn_lib::get_dropout_states_size() / sizeof(TestType);
   El::Matrix<TestType, El::Device::GPU> states(states_size, 1);
+  dnn_lib::DropoutDescriptor dropoutDesc;
   dropoutDesc.set(dropout, states.Buffer(), states_size * sizeof(TestType), seed);
+
+  // Input/Output tensors and descriptors
+  dnn_lib::TensorDescriptor xDesc;
+  xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
+  dnn_lib::TensorDescriptor dxDesc;
+  dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> dx(c * h * w, N);
+  dnn_lib::TensorDescriptor yDesc;
+  yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
+  dnn_lib::TensorDescriptor dyDesc;
+  dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> dy(c * h * w, N);
+
+  // Workspace
+  size_t workspace_size = dnn_lib::get_dropout_reserve_space_size(xDesc);
+  El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
 
   SECTION("dropout forward")
   {
-    dnn_lib::TensorDescriptor xDesc;
-    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
-    dnn_lib::TensorDescriptor yDesc;
-    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
-    size_t workspace_size = dnn_lib::get_dropout_reserve_space_size(xDesc);
-    El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
-
     REQUIRE_NOTHROW(
       dnn_lib::dropout_forward(dropoutDesc,
                                xDesc, x,
@@ -188,15 +198,6 @@ TEMPLATE_TEST_CASE("Computing dropout layers", "[dnn_lib]", float, double)
   }
   SECTION("dropout backward")
   {
-    dnn_lib::TensorDescriptor dxDesc;
-    dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> dx(c * h * w, N);
-    dnn_lib::TensorDescriptor dyDesc;
-    dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> dy(c * h * w, N);
-    size_t workspace_size = dnn_lib::get_dropout_reserve_space_size(dxDesc);
-    El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
-
     REQUIRE_NOTHROW(
       dnn_lib::dropout_forward(dropoutDesc,
                                dyDesc, dy,
@@ -207,23 +208,33 @@ TEMPLATE_TEST_CASE("Computing dropout layers", "[dnn_lib]", float, double)
 
 TEMPLATE_TEST_CASE("Computing LRN layers", "[dnn_lib]", float, double)
 {
+  // Parameters describing LRN and tensor sizes
   int N = 8, c = 3, h = 5, w = 5;
   int lrnN = 4;
   double lrnAlpha = 0.0001, lrnBeta = 0.75, lrnK = 2.0;
   const dnn_lib::ScalingParamType<TestType> alpha = 1.;
   const dnn_lib::ScalingParamType<TestType> beta = 0.;
+
+  // LRN Descriptor
   dnn_lib::LRNDescriptor normDesc;
   normDesc.set(lrnN, lrnAlpha, lrnBeta, lrnK);
 
+  // Input/Output tensors and descriptors
+  dnn_lib::TensorDescriptor xDesc;
+  xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
+  dnn_lib::TensorDescriptor dxDesc;
+  dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> dx(c * h * w, N);
+  dnn_lib::TensorDescriptor yDesc;
+  yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
+  dnn_lib::TensorDescriptor dyDesc;
+  dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> dy(c * h * w, N);
+
   SECTION("LRN forward")
   {
-    dnn_lib::TensorDescriptor xDesc;
-    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
-    dnn_lib::TensorDescriptor yDesc;
-    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
-
     REQUIRE_NOTHROW(
       dnn_lib::lrn_cross_channel_forward(normDesc,
                                          alpha, xDesc, x,
@@ -232,19 +243,6 @@ TEMPLATE_TEST_CASE("Computing LRN layers", "[dnn_lib]", float, double)
 
   SECTION("LRN backward")
   {
-    dnn_lib::TensorDescriptor yDesc;
-    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
-    dnn_lib::TensorDescriptor dyDesc;
-    dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> dy(c * h * w, N);
-    dnn_lib::TensorDescriptor xDesc;
-    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
-    dnn_lib::TensorDescriptor dxDesc;
-    dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> dx(c * h * w, N);
-
     REQUIRE_NOTHROW(
       dnn_lib::lrn_cross_channel_backward(normDesc,
                                           alpha,
@@ -258,25 +256,37 @@ TEMPLATE_TEST_CASE("Computing LRN layers", "[dnn_lib]", float, double)
 
 TEMPLATE_TEST_CASE("Computing pooling layers", "[dnn_lib]", float, double)
 {
+  // Parameters describing pooling and tensor sizes
   int N = 8, c = 3, h = 5, w = 5;
   std::vector<int> windowDims{ 2, 2 };
   std::vector<int> padding{ 1, 1 };
   std::vector<int> stride{ 1, 1 };
+
+  // Scaling parameters
   const dnn_lib::ScalingParamType<TestType> alpha = 1.;
   const dnn_lib::ScalingParamType<TestType> beta = 0.;
+
+  // Pooling descriptor
   dnn_lib::PoolingDescriptor poolingDesc;
-  poolingDesc.set(CUDNN_POOLING_MAX, CUDNN_PROPAGATE_NAN,
+  poolingDesc.set(pooling_mode::MAX, dnn_lib::DNN_PROPAGATE_NAN,
                   windowDims, padding, stride);
+
+  // Input/Output tensors and descriptors
+  dnn_lib::TensorDescriptor xDesc;
+  xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
+  dnn_lib::TensorDescriptor dxDesc;
+  dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> dx(c * h * w, N);
+  dnn_lib::TensorDescriptor yDesc;
+  yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
+  dnn_lib::TensorDescriptor dyDesc;
+  dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> dy(c * h * w, N);
 
   SECTION("Pooling forward")
   {
-    dnn_lib::TensorDescriptor xDesc;
-    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
-    dnn_lib::TensorDescriptor yDesc;
-    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
-
     REQUIRE_NOTHROW(
       dnn_lib::pooling_forward(poolingDesc,
                                alpha, xDesc, x,
@@ -285,19 +295,6 @@ TEMPLATE_TEST_CASE("Computing pooling layers", "[dnn_lib]", float, double)
 
   SECTION("Pooling backward")
   {
-    dnn_lib::TensorDescriptor yDesc;
-    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> y(c * h * w, N);
-    dnn_lib::TensorDescriptor dyDesc;
-    dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> dy(c * h * w, N);
-    dnn_lib::TensorDescriptor xDesc;
-    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> x(c * h * w, N);
-    dnn_lib::TensorDescriptor dxDesc;
-    dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> dx(c * h * w, N);
-
     REQUIRE_NOTHROW(
       dnn_lib::pooling_backward(poolingDesc,
                                 alpha,
@@ -311,41 +308,45 @@ TEMPLATE_TEST_CASE("Computing pooling layers", "[dnn_lib]", float, double)
 
 TEMPLATE_TEST_CASE("Computing softmax layers", "[dnn_lib]", float, double)
 {
+  // Parmeters describing tensor sizes
   int N = 8, labels_n = 2;
+
+  // Scaling parameters
+  const dnn_lib::ScalingParamType<TestType> alpha = 1.;
+  const dnn_lib::ScalingParamType<TestType> beta = 0.;
+
+  // Input/Output tensors and descriptors
+  dnn_lib::TensorDescriptor xDesc;
+  xDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
+  El::Matrix<TestType, El::Device::GPU> x(labels_n, N);
+  dnn_lib::TensorDescriptor dxDesc;
+  dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
+  El::Matrix<TestType, El::Device::GPU> dx(labels_n, N);
+  dnn_lib::TensorDescriptor yDesc;
+  yDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
+  El::Matrix<TestType, El::Device::GPU> y(labels_n, N);
+  dnn_lib::TensorDescriptor dyDesc;
+  dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
+  El::Matrix<TestType, El::Device::GPU> dy(labels_n, N);
+
   SECTION("softmax forward")
   {
-    const dnn_lib::ScalingParamType<TestType> alpha = 1.;
-    dnn_lib::TensorDescriptor xDesc;
-    xDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
-    El::Matrix<TestType, El::Device::GPU> x(labels_n, N);
-    const dnn_lib::ScalingParamType<TestType> beta = 0.;
-    dnn_lib::TensorDescriptor yDesc;
-    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
-    El::Matrix<TestType, El::Device::GPU> y(labels_n, N);
-    softmax_mode mode = softmax_mode::CHANNEL;
-    softmax_alg alg = softmax_alg::ACCURATE;
-
     REQUIRE_NOTHROW(
-      dnn_lib::softmax_forward(alpha, xDesc, x, beta, yDesc, y, mode, alg));
+      dnn_lib::softmax_forward(alpha, xDesc, x,
+                               beta, yDesc, y,
+                               softmax_mode::CHANNEL,
+                               softmax_alg::ACCURATE));
   }
 
   SECTION("softmax backward")
   {
-    const dnn_lib::ScalingParamType<TestType> alpha = 1.;
-    dnn_lib::TensorDescriptor yDesc;
-    yDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
-    El::Matrix<TestType, El::Device::GPU> y(labels_n, N);
-    dnn_lib::TensorDescriptor dyDesc;
-    dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
-    El::Matrix<TestType, El::Device::GPU> dy(labels_n, N);
-    const dnn_lib::ScalingParamType<TestType> beta = 0.;
-    dnn_lib::TensorDescriptor dxDesc;
-    dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, 1, labels_n });
-    El::Matrix<TestType, El::Device::GPU> dx(labels_n, N);
-    softmax_mode mode = softmax_mode::CHANNEL;
-    softmax_alg alg = softmax_alg::ACCURATE;
-
     REQUIRE_NOTHROW(
-      dnn_lib::softmax_backward(alpha, yDesc, y, dyDesc, dy, beta, dxDesc, dx, mode, alg));
+      dnn_lib::softmax_backward(alpha,
+                                yDesc, y,
+                                dyDesc, dy,
+                                beta,
+                                dxDesc, dx,
+                                softmax_mode::CHANNEL,
+                                softmax_alg::ACCURATE));
   }
 }
