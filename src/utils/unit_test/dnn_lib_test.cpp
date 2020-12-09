@@ -40,67 +40,86 @@
 
 using namespace lbann;
 
-TEMPLATE_TEST_CASE("Add tensors", "[dnn_lib]", float, double)
+TEMPLATE_TEST_CASE("Tensor operations", "[dnn_lib]", float, double)
 {
-  SECTION("add tensor")
+  int N = 2, c = 4, h = 8, w = 16;
+  const dnn_lib::ScalingParamType<TestType> alpha = 1.;
+  const dnn_lib::ScalingParamType<TestType> beta = 0.;
+
+  dnn_lib::TensorDescriptor aDesc;
+  aDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> A(c * h * w, N);
+  dnn_lib::TensorDescriptor cDesc;
+  cDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
+  El::Matrix<TestType, El::Device::GPU> C(c * h * w, N);
+
+  SECTION("Add tensor")
   {
-    int N = 2, c = 4, h = 8, w = 16;
-    const dnn_lib::ScalingParamType<TestType> alpha = 1.;
-    const dnn_lib::ScalingParamType<TestType> beta = 0.;
-
-    dnn_lib::TensorDescriptor aDesc;
-    aDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> A(c * h * w, N);
-    dnn_lib::TensorDescriptor cDesc;
-    cDesc.set(dnn_lib::get_data_type<TestType>(), { N, c, h, w });
-    El::Matrix<TestType, El::Device::GPU> C(c * h * w, N);
-
     REQUIRE_NOTHROW(dnn_lib::add_tensor(alpha, aDesc, A, beta, cDesc, C));
   }
 }
 
 TEMPLATE_TEST_CASE("Computing convolution layers", "[dnn_lib]", float, double)
 {
-    int N = 8;
-    int in_c = 1, in_h = 5, in_w = 5;
-    int out_c = 1, out_h = 6, out_w = 6;
-    int filt_k = 1, filt_c = 1, filt_h = 2, filt_w = 2;
-    int pad_h = 1, pad_w = 1;
-    int str_h = 1, str_w = 1;
-    int dil_h = 1, dil_w = 1;
-    const dnn_lib::ScalingParamType<TestType> alpha = 1.;
-    const dnn_lib::ScalingParamType<TestType> beta = 0.;
+  // Parameters describing convolution and tensor sizes
+  int N = 8;
+  int in_c = 1, in_h = 5, in_w = 5;
+  int out_c = 1, out_h = 6, out_w = 6;
+  int filt_k = 1, filt_c = 1, filt_h = 2, filt_w = 2;
+  int pad_h = 1, pad_w = 1;
+  int str_h = 1, str_w = 1;
+  int dil_h = 1, dil_w = 1;
+
+  // Scaling parameters
+  const dnn_lib::ScalingParamType<TestType> alpha = 1.;
+  const dnn_lib::ScalingParamType<TestType> beta = 0.;
+
+  // Convolution Descriptor
+  dnn_lib::ConvolutionDescriptor convDesc;
+  convDesc.set({ pad_h, pad_w },
+               { str_h, str_w },
+               { dil_h, dil_w },
+               dnn_lib::get_data_type<TestType>());
+
+  // Input/Output Tensors and descriptors
+  dnn_lib::FilterDescriptor wDesc;
+  wDesc.set(dnn_lib::get_data_type<TestType>(),
+            dnn_lib::DNN_TENSOR_NCHW,
+            { filt_k, filt_c, filt_h, filt_w });
+  El::Matrix<TestType, El::Device::GPU> w(filt_k * filt_c * filt_h * filt_w, N);
+  dnn_lib::FilterDescriptor dwDesc;
+  dwDesc.set(dnn_lib::get_data_type<TestType>(),
+             dnn_lib::DNN_TENSOR_NCHW,
+             { filt_k, filt_c, filt_h, filt_w });
+  El::Matrix<TestType, El::Device::GPU> dw(filt_k * filt_c * filt_h * filt_w, N);
+  dnn_lib::TensorDescriptor dbDesc;
+  dbDesc.set(dnn_lib::get_data_type<TestType>(), { 1, out_c, 1, 1 });
+  El::Matrix<TestType, El::Device::GPU> db(out_c, 1);
+  dnn_lib::TensorDescriptor xDesc;
+  xDesc.set(dnn_lib::get_data_type<TestType>(), { N, in_c, in_h, in_w });
+  El::Matrix<TestType, El::Device::GPU> x(in_c * in_h * in_w, N);
+  dnn_lib::TensorDescriptor dxDesc;
+  dxDesc.set(dnn_lib::get_data_type<TestType>(), { N, in_c, in_h, in_w });
+  El::Matrix<TestType, El::Device::GPU> dx(in_c * in_h * in_w, N);
+  dnn_lib::TensorDescriptor yDesc;
+  yDesc.set(dnn_lib::get_data_type<TestType>(), { N, out_c, out_h, out_w });
+  El::Matrix<TestType, El::Device::GPU> y(out_c * out_h * out_w, N);
+  dnn_lib::TensorDescriptor dyDesc;
+  dyDesc.set(dnn_lib::get_data_type<TestType>(), { N, out_c, out_h, out_w });
+  El::Matrix<TestType, El::Device::GPU> dy(out_c * out_h * out_w, N);
+
+  // Workspace
+  size_t workspace_size = (1 << 30) / sizeof(TestType);
+  El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
 
   SECTION("convolution forward")
   {
-    dnn_lib::TensorDescriptor xDesc;
-    xDesc.set(dnn_lib::get_data_type<TestType>(),
-              { N, in_c, in_h, in_w });
-    El::Matrix<TestType, El::Device::GPU> x(in_c * in_h * in_w, N);
-    dnn_lib::FilterDescriptor wDesc;
-    wDesc.set(dnn_lib::get_data_type<TestType>(),
-              dnn_lib::DNN_TENSOR_NCHW,
-              { filt_k, filt_c, filt_h, filt_w });
-    El::Matrix<TestType, El::Device::GPU> w(filt_k * filt_c * filt_h * filt_w,
-                                            N);
-    dnn_lib::ConvolutionDescriptor convDesc;
-    convDesc.set({ pad_h, pad_w },
-                 { str_h, str_w },
-                 { dil_h, dil_w },
-                 dnn_lib::get_data_type<TestType>());
-    fwd_conv_alg alg = fwd_conv_alg::GEMM;
-    size_t workspace_size = (1 << 30) / sizeof(TestType);
-    El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
-    dnn_lib::TensorDescriptor yDesc;
-    yDesc.set(dnn_lib::get_data_type<TestType>(),
-              { N, out_c, out_h, out_w });
-    El::Matrix<TestType, El::Device::GPU> y(out_c * out_h * out_w, N);
-
     REQUIRE_NOTHROW(
       dnn_lib::convolution_forward(alpha,
                                    xDesc, x,
                                    wDesc, w,
-                                   convDesc, alg,
+                                   convDesc,
+                                   fwd_conv_alg::GEMM,
                                    workSpace,
                                    beta,
                                    yDesc, y));
@@ -108,34 +127,12 @@ TEMPLATE_TEST_CASE("Computing convolution layers", "[dnn_lib]", float, double)
 
   SECTION("convolution backward data")
   {
-    dnn_lib::FilterDescriptor wDesc;
-    wDesc.set(dnn_lib::get_data_type<TestType>(),
-              dnn_lib::DNN_TENSOR_NCHW,
-              { filt_k, filt_c, filt_h, filt_w });
-    El::Matrix<TestType, El::Device::GPU> w(filt_k * filt_c * filt_h * filt_w,
-                                            N);
-    dnn_lib::TensorDescriptor dyDesc;
-    dyDesc.set(dnn_lib::get_data_type<TestType>(),
-               { N, out_c, out_h, out_w });
-    El::Matrix<TestType, El::Device::GPU> dy(out_c * out_h * out_w, N);
-    dnn_lib::ConvolutionDescriptor convDesc;
-    convDesc.set({ pad_h, pad_w },
-                 { str_h, str_w },
-                 { dil_h, dil_w },
-                 dnn_lib::get_data_type<TestType>());
-    bwd_data_conv_alg alg = bwd_data_conv_alg::CUDNN_ALGO_0;
-    size_t workspace_size = (1 << 30) / sizeof(TestType);
-    El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
-    dnn_lib::TensorDescriptor dxDesc;
-    dxDesc.set(dnn_lib::get_data_type<TestType>(),
-               { N, in_c, in_h, in_w });
-    El::Matrix<TestType, El::Device::GPU> dx(in_c * in_h * in_w, N);
-
     REQUIRE_NOTHROW(
       dnn_lib::convolution_backward_data(alpha,
                                          wDesc, w,
                                          dyDesc, dy,
-                                         convDesc, alg,
+                                         convDesc,
+                                         bwd_data_conv_alg::CUDNN_ALGO_0,
                                          workSpace,
                                          beta,
                                          dxDesc, dx));
@@ -143,15 +140,6 @@ TEMPLATE_TEST_CASE("Computing convolution layers", "[dnn_lib]", float, double)
 
   SECTION("convolution backward bias")
   {
-    dnn_lib::TensorDescriptor dyDesc;
-    dyDesc.set(dnn_lib::get_data_type<TestType>(),
-               { N, out_c, out_h, out_w });
-    El::Matrix<TestType, El::Device::GPU> dy(out_c * out_h * out_w, N);
-    dnn_lib::TensorDescriptor dbDesc;
-    dbDesc.set(dnn_lib::get_data_type<TestType>(),
-               { 1, out_c, 1, 1 });
-    El::Matrix<TestType, El::Device::GPU> db(out_c, 1);
-
     REQUIRE_NOTHROW(
       dnn_lib::convolution_backward_bias(alpha, dyDesc, dy,
                                          beta, dbDesc, db));
@@ -159,34 +147,12 @@ TEMPLATE_TEST_CASE("Computing convolution layers", "[dnn_lib]", float, double)
 
   SECTION("convolution backward filter")
   {
-    dnn_lib::TensorDescriptor xDesc;
-    xDesc.set(dnn_lib::get_data_type<TestType>(),
-              { N, in_c, in_h, in_w });
-    El::Matrix<TestType, El::Device::GPU> x(in_c * in_h * in_w, N);
-    dnn_lib::TensorDescriptor dyDesc;
-    dyDesc.set(dnn_lib::get_data_type<TestType>(),
-               { N, out_c, out_h, out_w });
-    El::Matrix<TestType, El::Device::GPU> dy(out_c * out_h * out_w, N);
-    dnn_lib::ConvolutionDescriptor convDesc;
-    convDesc.set({ pad_h, pad_w },
-                 { str_h, str_w },
-                 { dil_h, dil_w },
-                 dnn_lib::get_data_type<TestType>());
-    bwd_filter_conv_alg alg = bwd_filter_conv_alg::CUDNN_ALGO_0;
-    size_t workspace_size = (1 << 30) / sizeof(TestType);
-    El::Matrix<TestType, El::Device::GPU> workSpace(workspace_size, 1);
-    dnn_lib::FilterDescriptor dwDesc;
-    dwDesc.set(dnn_lib::get_data_type<TestType>(),
-               dnn_lib::DNN_TENSOR_NCHW,
-               { filt_k, filt_c, filt_h, filt_w });
-    El::Matrix<TestType, El::Device::GPU> dw(filt_k * filt_c * filt_h * filt_w,
-                                             N);
-
     REQUIRE_NOTHROW(
       dnn_lib::convolution_backward_filter(alpha,
                                            xDesc, x,
                                            dyDesc, dy,
-                                           convDesc, alg,
+                                           convDesc,
+                                           bwd_filter_conv_alg::CUDNN_ALGO_0,
                                            workSpace,
                                            beta,
                                            dwDesc, dw));
