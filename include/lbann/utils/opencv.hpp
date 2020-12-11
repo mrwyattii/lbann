@@ -29,7 +29,10 @@
 
 #include "lbann/utils/exception.hpp"
 #include "lbann/utils/type_erased_matrix.hpp"
+
+#ifdef LBANN_HAS_OPENCV
 #include <opencv2/core.hpp>
+#endif // LBANN_HAS_OPENCV
 
 namespace lbann {
 namespace utils {
@@ -80,6 +83,7 @@ inline void assert_is_image(const utils::type_erased_matrix& data,
   }
 }
 
+#ifdef LBANN_HAS_OPENCV
 /**
  * Construct an OpenCV Mat that refers to data.
  * No data is copied, this just sets up a cv::Mat header.
@@ -107,6 +111,8 @@ inline cv::Mat get_opencv_mat(El::Matrix<uint8_t>& data, const std::vector<size_
                  data.Buffer());
 }
 
+#endif // LBANN_HAS_OPENCV
+
 /** Get the linearized size of dims. */
 inline size_t get_linearized_size(const std::vector<size_t>& dims) {
   return std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
@@ -114,5 +120,6 @@ inline size_t get_linearized_size(const std::vector<size_t>& dims) {
 
 }  // namespace utils
 }  // namespace lbann
+
 
 #endif  // LBANN_UTILS_OPENCV_HPP_INCLUDED
