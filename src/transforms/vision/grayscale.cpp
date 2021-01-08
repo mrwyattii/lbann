@@ -24,7 +24,9 @@
 // permissions and limitations under the license.
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifdef LBANN_HAS_OPENCV
 #include <opencv2/imgproc.hpp>
+#endif // LBANN_HAS_OPENCV
 #include "lbann/transforms/vision/grayscale.hpp"
 #include "lbann/utils/memory.hpp"
 #include "lbann/utils/opencv.hpp"
@@ -32,6 +34,7 @@
 namespace lbann {
 namespace transform {
 
+#ifdef LBANN_HAS_OPENCV
 void grayscale::apply(utils::type_erased_matrix& data, std::vector<size_t>& dims) {
   cv::Mat src = utils::get_opencv_mat(data, dims);
   if (dims[0] == 1) {
@@ -44,6 +47,7 @@ void grayscale::apply(utils::type_erased_matrix& data, std::vector<size_t>& dims
   data.emplace<uint8_t>(std::move(dst_real));
   dims = new_dims;
 }
+#endif // LBANN_HAS_OPENCV
 
 std::unique_ptr<transform>
 build_grayscale_transform_from_pbuf(google::protobuf::Message const&) {

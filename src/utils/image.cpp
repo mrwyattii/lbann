@@ -26,10 +26,12 @@
 
 #include <stdio.h>
 #include <arpa/inet.h>
-#include <opencv2/imgcodecs.hpp>
 #include "lbann/utils/image.hpp"
 #include "lbann/utils/exception.hpp"
+#ifdef LBANN_HAS_OPENCV
+#include <opencv2/imgcodecs.hpp>
 #include "lbann/utils/opencv.hpp"
+#endif // LBANN_HAS_OPENCV
 
 namespace lbann {
 
@@ -132,6 +134,7 @@ void guess_image_size(const El::Matrix<uint8_t>& buf_, size_t size,
   // Give up.
 }
 
+#ifdef LBANN_HAS_OPENCV
 // Decode an image from a buffer using OpenCV.
 void opencv_decode(El::Matrix<uint8_t>& buf, El::Matrix<uint8_t>& dst,
                    std::vector<size_t>& dims, const std::string filename) {
@@ -179,9 +182,11 @@ void opencv_decode(El::Matrix<uint8_t>& buf, El::Matrix<uint8_t>& dst,
     decoded.copyTo(cv_dst);
   }
 }
+#endif // LBANN_HAS_OPENCV
 
 }  // anonymous namespace
 
+#ifdef LBANN_HAS_OPENCV
 void load_image(const std::string& filename, El::Matrix<uint8_t>& dst,
                 std::vector<size_t>& dims) {
   // Load the encoded image.
@@ -271,5 +276,6 @@ El::Matrix<uint8_t> get_uint8_t_image(const CPUMat& image,
   }
   return output_mat;
 }
+#endif // LBANN_HAS_OPENCV
 
 }  // namespace lbann

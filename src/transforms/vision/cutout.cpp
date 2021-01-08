@@ -26,13 +26,16 @@
 
 #include "lbann/transforms/vision/cutout.hpp"
 #include "lbann/utils/memory.hpp"
+#ifdef LBANN_HAS_OPENCV
 #include "lbann/utils/opencv.hpp"
+#endif // LBANN_HAS_OPENCV
 
 #include <transforms.pb.h>
 
 namespace lbann {
 namespace transform {
 
+#ifdef LBANN_HAS_OPENCV
 void cutout::apply(utils::type_erased_matrix& data, std::vector<size_t>& dims) {
   cv::Mat src = utils::get_opencv_mat(data, dims);
   for (size_t i = 0; i < m_num_holes; ++i) {
@@ -63,6 +66,7 @@ void cutout::apply(utils::type_erased_matrix& data, std::vector<size_t>& dims) {
     hole = 0;
   }
 }
+#endif // LBANN_HAS_OPENCV
 
 std::unique_ptr<transform>
 build_cutout_transform_from_pbuf(google::protobuf::Message const& msg) {

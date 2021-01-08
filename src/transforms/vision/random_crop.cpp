@@ -26,13 +26,16 @@
 
 #include "lbann/transforms/vision/random_crop.hpp"
 #include "lbann/utils/memory.hpp"
+#ifdef LBANN_HAS_OPENCV
 #include "lbann/utils/opencv.hpp"
+#endif // LBANN_HAS_OPENCV
 
 #include <transforms.pb.h>
 
 namespace lbann {
 namespace transform {
 
+#ifdef LBANN_HAS_OPENCV
 void random_crop::apply(utils::type_erased_matrix& data, std::vector<size_t>& dims) {
   cv::Mat src = utils::get_opencv_mat(data, dims);
   if (dims[1] <= m_h || dims[2] <= m_w) {
@@ -62,6 +65,7 @@ void random_crop::apply(utils::type_erased_matrix& data, std::vector<size_t>& di
   data.emplace<uint8_t>(std::move(dst_real));
   dims = new_dims;
 }
+#endif // LBANN_HAS_OPENCV
 
 std::unique_ptr<transform>
 build_random_crop_transform_from_pbuf(google::protobuf::Message const& msg) {

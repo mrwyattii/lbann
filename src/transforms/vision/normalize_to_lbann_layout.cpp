@@ -27,7 +27,9 @@
 #include "lbann/transforms/vision/normalize_to_lbann_layout.hpp"
 #include "lbann/proto/proto_common.hpp"
 #include "lbann/utils/memory.hpp"
+#ifdef LBANN_HAS_OPENCV
 #include "lbann/utils/opencv.hpp"
+#endif // LBANN_HAS_OPENCV
 
 #include <transforms.pb.h>
 
@@ -41,6 +43,7 @@ void normalize_to_lbann_layout::apply(utils::type_erased_matrix& data,
   data.emplace<DataType>(std::move(dst));
 }
 
+#ifdef LBANN_HAS_OPENCV
 void normalize_to_lbann_layout::apply(utils::type_erased_matrix& data,
                                       CPUMat& out,
                                       std::vector<size_t>& dims) {
@@ -93,6 +96,7 @@ void normalize_to_lbann_layout::apply(utils::type_erased_matrix& data,
     }
   }
 }
+#endif // LBANN_HAS_OPENCV
 
 std::unique_ptr<transform>
 build_normalize_to_lbann_layout_transform_from_pbuf(

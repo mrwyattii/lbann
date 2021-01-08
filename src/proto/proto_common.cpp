@@ -95,17 +95,26 @@ void init_data_readers(
     generic_data_reader *reader = nullptr;
 
     // This is a hack that should be fixed when we clean up data reader setup.
+#ifdef LBANN_HAS_OPENCV
     bool set_transform_pipeline = true;
+#else
+    bool set_transform_pipeline = false;
+#endif
 
     if ((name == "mnist") || (name == "cifar10")) {
+#ifdef LBANN_HAS_OPENCV
       init_org_image_data_reader(readme, master, reader);
       set_transform_pipeline = false;
+#endif
     } else if ((name == "imagenet")) {
+#ifdef LBANN_HAS_OPENCV
       init_image_data_reader(readme, pb_metadata, master, reader);
       reader->set_data_sample_list(readme.sample_list());
       reader->keep_sample_order(readme.sample_list_keep_order());
       set_transform_pipeline = false;
+#endif
     } else if (name == "jag_conduit") {
+#ifdef LBANN_HAS_OPENCV
       init_image_data_reader(readme, pb_metadata, master, reader);
       set_transform_pipeline = false;
       auto reader_jag_conduit = dynamic_cast<data_reader_jag_conduit*>(reader);
@@ -126,9 +135,12 @@ void init_data_readers(
           break;
         }
       }
+#endif
     } else if (name == "jag_conduit_hdf5") {
+#ifdef LBANN_HAS_OPENCV
       init_image_data_reader(readme, pb_metadata, master, reader);
       set_transform_pipeline = false;
+#endif
     } else if (name == "nci") {
       reader = new data_reader_nci(shuffle);
     } else if (name == "smiles") {
@@ -221,8 +233,10 @@ void init_data_readers(
           reader_numpy_npz->set_scaling_factor_int16(readme.scaling_factor_int16());
           npy_readers.push_back(reader_numpy_npz);
         } else if (readme.format() == "jag_conduit") {
+#ifdef LBANN_HAS_OPENCV
           init_image_data_reader(readme, pb_metadata, master, reader);
           npy_readers.push_back(reader);
+#endif
         } else if (readme.format() == "pilot2_molecular_reader") {
           pilot2_molecular_reader* reader_pilot2_molecular = new pilot2_molecular_reader(readme.num_neighbors(), readme.max_neighborhood(), shuffle);
           reader_pilot2_molecular->set_data_filename(path);
@@ -433,9 +447,13 @@ void init_data_readers(
             (*(mnist_reader *)split_reader) = (*(mnist_reader *)reader);
           } else if (name == "numpy_npz_conduit_reader") {
             split_reader = new numpy_npz_conduit_reader(*dynamic_cast<const numpy_npz_conduit_reader*>(reader));
-          } else if (name == "imagenet") {
+          }
+#ifdef LBANN_HAS_OPENCV
+          else if (name == "imagenet") {
             split_reader = new imagenet_reader(*dynamic_cast<const imagenet_reader*>(reader));
-          } else if (name == "smiles") {
+          }
+#endif // LBANN_HAS_OPENCV
+          else if (name == "smiles") {
             split_reader = new smiles_data_reader(*dynamic_cast<const smiles_data_reader*>(reader));
           } else if (name == "jag_conduit") {
             split_reader = new data_reader_jag_conduit(*dynamic_cast<const data_reader_jag_conduit*>(reader));

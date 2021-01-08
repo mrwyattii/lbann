@@ -26,13 +26,16 @@
 
 #include "lbann/transforms/vision/vertical_flip.hpp"
 #include "lbann/utils/memory.hpp"
+#ifdef LBANN_HAS_OPENCV
 #include "lbann/utils/opencv.hpp"
+#endif // LBANN_HAS_OPENCV
 
 #include <transforms.pb.h>
 
 namespace lbann {
 namespace transform {
 
+#ifdef LBANN_HAS_OPENCV
 void vertical_flip::apply(utils::type_erased_matrix& data, std::vector<size_t>& dims) {
   if (transform::get_bool_random(m_p)) {
     cv::Mat src = utils::get_opencv_mat(data, dims);
@@ -42,6 +45,7 @@ void vertical_flip::apply(utils::type_erased_matrix& data, std::vector<size_t>& 
     data.emplace<uint8_t>(std::move(dst_real));
   }
 }
+#endif // LBANN_HAS_OPENCV
 
 std::unique_ptr<transform>
 build_vertical_flip_transform_from_pbuf(google::protobuf::Message const& msg) {
