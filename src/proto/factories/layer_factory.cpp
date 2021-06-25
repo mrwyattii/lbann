@@ -317,7 +317,7 @@ std::unique_ptr<Layer> construct_layer_legacy(
 
   // Input layers
   // Currently this cannot be suitably removed from this function
-  // because it relies on "num_parallel_readers" and "data_readers"
+  // because it relies on NUM_PARALLEL_READERS and "data_readers"
   // arguments.
   if (proto_layer.has_input()) {
     const auto& params = proto_layer.input();
@@ -349,7 +349,7 @@ std::unique_ptr<Layer> construct_layer_legacy(
   }
 
   // Currently this cannot be suitably removed from this function
-  // because it relies on "num_parallel_readers" and "data_readers"
+  // because it relies on NUM_PARALLEL_READERS and "data_readers"
   // arguments.
   if (proto_layer.has_deconvolution()) {
     const auto& params = proto_layer.deconvolution();
@@ -416,7 +416,7 @@ std::unique_ptr<Layer> construct_layer_legacy(
 
   // Transform layers
   // Currently this cannot be suitably removed from this function
-  // because it relies on "num_parallel_readers" and "data_readers"
+  // because it relies on NUM_PARALLEL_READERS and "data_readers"
   // arguments.
   if (proto_layer.has_reshape()) {
     const auto& params = proto_layer.reshape();
@@ -435,7 +435,7 @@ std::unique_ptr<Layer> construct_layer_legacy(
   }
 
   // Currently this cannot be suitably removed from this function
-  // because it relies on "num_parallel_readers" and "data_readers"
+  // because it relies on NUM_PARALLEL_READERS and "data_readers"
   // arguments.
   if (proto_layer.has_slice()) {
     const auto& params = proto_layer.slice();
