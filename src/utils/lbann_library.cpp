@@ -130,6 +130,7 @@ trainer& construct_trainer(lbann_comm *comm,
   if (pb_trainer->num_parallel_readers() > comm->get_procs_per_trainer()) {
     pb_trainer->set_num_parallel_readers(comm->get_procs_per_trainer());
   }
+  auto& arg_parser = global_argument_parser();
 
   // Adjust the number of parallel readers; this may be adjusted
   // after calling split_trainers()
@@ -173,12 +174,12 @@ trainer& construct_trainer(lbann_comm *comm,
 
   // If the checkpoint directory has been overridden reset it before
   // setting up the trainer
-  if (arg_parser.get<string>(CKPT_DIR) != "") {
+  if (arg_parser.get<std::string>(CKPT_DIR) != "") {
     for (auto&& c : global_trainer_->get_callbacks()) {
       {
         auto* cb = dynamic_cast<callback::checkpoint*>(c);
         if(cb != nullptr) {
-          cb->set_checkpoint_dir(arg_parser.get<string>(CKPT_DIR));
+          cb->set_checkpoint_dir(arg_parser.get<std::string>(CKPT_DIR));
           if(comm->am_trainer_master()) {
             std::cout << "Setting the checkpoint directory to " << cb->get_checkpoint_dir() << std::endl;
           }
@@ -186,12 +187,12 @@ trainer& construct_trainer(lbann_comm *comm,
       }
     }
   }
-  if (arg_parser.get<string>(RESTART_DIR) != "") {
+  if (arg_parser.get<std::string>(RESTART_DIR) != "") {
     for (auto&& c : global_trainer_->get_callbacks()) {
       {
         auto* cb = dynamic_cast<callback::checkpoint*>(c);
         if(cb != nullptr) {
-          cb->set_restart_dir(arg_parser.get<string>(RESTART_DIR));
+          cb->set_restart_dir(arg_parser.get<std::string>(RESTART_DIR));
           if(comm->am_trainer_master()) {
             std::cout << "Setting the restart directory to " << cb->get_restart_dir() << std::endl;
           }
@@ -265,7 +266,7 @@ trainer& construct_trainer(lbann_comm *comm,
 
   global_trainer_->setup(std::move(io_thread_pool), data_readers);
 
-  if(arg_parser.get<bool>(DISABLE_BACKGROUND_IO_ACTIVITY) {
+  if (arg_parser.get<bool>(DISABLE_BACKGROUND_IO_ACTIVITY)) {
     global_trainer_->allow_background_io_activity(false);
   }
 
